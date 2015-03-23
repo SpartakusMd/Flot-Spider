@@ -91,6 +91,8 @@
         }
 
         function draw(plot, ctx) {
+            console.log('Drawing');
+
             data = plot.getData();
             opt = plot.getOptions();
             clear(ctx);
@@ -121,14 +123,17 @@
                 min = Math.min(min, data[i].data[j][1]);
                 max = Math.max(max, data[i].data[j][1]);
             }
+
             min = min * data[0].spider.legs.legScaleMin;
             max = max * data[0].spider.legs.legScaleMax;
-            if (opt.series.spider.legMin) {
+
+            if (opt.series.spider.legMin != null) {
                 min = opt.series.spider.legMin;
             }
-            if (opt.series.spider.legMax) {
+            if (opt.series.spider.legMax != null) {
                 max = opt.series.spider.legMax;
             }
+
             return {min: min, max: max, range: max - min};
         }
 
@@ -158,7 +163,10 @@
         function setupspider(ctx) {
             maxRadius = Math.min(ctx.canvas.width, ctx.canvas.height) / 2 * data[0].spider.spiderSize;
             centerTop = (ctx.canvas.height / 2);
-            centerLeft = centerTop;
+            centerLeft = (ctx.canvas.width / 2);
+
+            console.log('centerTop: ', centerTop);
+            console.log('centerLeft: ', centerLeft);
         }
 
         function drawspiderPoints(ctx, cnt, serie, opt) {
@@ -296,7 +304,7 @@
                 ctx.beginPath();
                 ctx.lineWidth = options.series.spider.lineWidth;
                 ctx.strokeStyle = options.series.spider.lineStyle;
-                ctx.moveTo(centerTop, centerLeft);
+                ctx.moveTo(centerLeft, centerTop);
                 pos = calculateXY(cnt, j, 100);
                 ctx.lineTo(pos.x, pos.y);
                 ctx.stroke();
@@ -318,12 +326,12 @@
                     extraY = 0;
                 }
                 if (pos.x < breakPoint.x) {
-                    extraX = (metrics.width * -1) - metrics.width / 2;
+                    extraX = (metrics.width * -1) - 15;
                 } else {
                     extraX = 0;
                 }
                 if (between(pos.x, startPoint.x + 10, startPoint.x - 10)) {
-                    extraX = metrics.width / 2;
+                    extraX = 15;
                 }
                 ctx.fillText(data[0].spider.legs.data[j].label, pos.x + extraX, pos.y + extraY);
             }
@@ -446,4 +454,4 @@
         name: pluginName,
         version: pluginVersion
     });
-})(jQuery);	
+})(jQuery);
