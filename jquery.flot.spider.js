@@ -91,8 +91,6 @@
         }
 
         function draw(plot, ctx) {
-            console.log('Drawing');
-
             data = plot.getData();
             opt = plot.getOptions();
             clear(ctx);
@@ -164,9 +162,6 @@
             maxRadius = Math.min(ctx.canvas.width, ctx.canvas.height) / 2 * data[0].spider.spiderSize;
             centerTop = (ctx.canvas.height / 2);
             centerLeft = (ctx.canvas.width / 2);
-
-            console.log('centerTop: ', centerTop);
-            console.log('centerLeft: ', centerLeft);
         }
 
         function drawspiderPoints(ctx, cnt, serie, opt) {
