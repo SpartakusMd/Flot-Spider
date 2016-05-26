@@ -36,14 +36,17 @@
                 scaleMode: "leg",
                 legMin: null,
                 legMax: null,
+		legValues: false,
                 connection: {width: 4},
                 highlight: {opacity: 0.5, mode: "point"},
                 legs: {
-                    font: "20px Times New Roman",
+		    font: { family: "Times New Roman", size: 20 },
                     fillStyle: "Black",
                     legScaleMin: 0.95,
                     legScaleMax: 1.05,
-                    legStartAngle: 0
+                    legStartAngle: 0,
+		    labelWidth: 0, // 0 is no set width
+		    labelSpace: 100, // distance out to center label
                 }
             }
         }
@@ -96,7 +99,7 @@
             clear(ctx);
             setupspider(ctx);
             calculateRanges();
-            drawspider(ctx, opt.grid);
+            drawspider(ctx);
         }
 
         function calculateRanges() {
@@ -145,10 +148,10 @@
             }
             min = min * data[0].spider.legs.legScaleMin;
             max = max * data[0].spider.legs.legScaleMax;
-            if (opt.series.spider.legMin) {
+            if (opt.series.spider.legMin != null) {
                 min = opt.series.spider.legMin;
             }
-            if (opt.series.spider.legMax) {
+            if (opt.series.spider.legMax != null) {
                 max = opt.series.spider.legMax;
             }
             return {min: min, max: max, range: max - min};
@@ -159,17 +162,15 @@
         }
 
         function setupspider(ctx) {
-            maxRadius = Math.min(ctx.canvas.width, ctx.canvas.height) / 2 * data[0].spider.spiderSize;
             centerTop = (ctx.canvas.height / 2);
             centerLeft = (ctx.canvas.width / 2);
+	    maxRadius = Math.min(centerTop, centerLeft) * data[0].spider.spiderSize;
         }
 
-        function drawspiderPoints(ctx, cnt, serie, opt) {
-            for (var j = 0; j < serie.data.length; j++) {
-                drawspiderPoint(ctx, cnt, serie, j, opt);
-            }
-        }
-
+	function drawspiderPoints(ctx, cnt, serie, color) {
+		for (var j = 0; j < serie.data.length; j++) { drawspiderPoint(ctx, cnt, serie, j, color); }
+	}
+	
         function drawspiderPoint(ctx, cnt, serie, j, c) {
             var pos;
             var d = calculatePosition(serie, data.ranges, j);
@@ -215,7 +216,7 @@
             }
         }
 
-        function drawspider(ctx, opt) {
+        function drawspider(ctx) {
             var cnt = data[0].data.length, i;
             for (i = 0; i < data.length; i++) {
                 drawspiderConnections(ctx, cnt, data[i], data[i].color);
@@ -223,13 +224,14 @@
             for (i = 0; i < data.length; i++) {
                 drawspiderPoints(ctx, cnt, data[i], data[i].color);
             }
-            drawGrid(ctx, opt);
-            function drawGridRadar(ctx, opt) {
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = opt.tickColor;
-                for (var i = 1; i <= opt.ticks; i++) {
-                    ctx.beginPath();
-                    ctx.arc(centerLeft, centerTop, maxRadius / opt.ticks * i, 0, Math.PI * 2, true);
+            drawGrid();
+            function drawGridRadar() {
+		var grid = opt.grid;
+		ctx.lineWidth = 1;
+		ctx.strokeStyle = grid.tickColor;
+		for (var i = 1; i <= grid.ticks; i++) {
+		    ctx.beginPath();
+		    ctx.arc(centerLeft, centerTop, maxRadius / grid.ticks * i, 0, Math.PI * 2, true);
                     ctx.closePath();
                     ctx.stroke();
                 }
@@ -246,91 +248,114 @@
                 }
             }
 
-            function drawGridSpider(ctx, opt) {
-                var i, j;
-                ctx.linewidth = 1;
-                ctx.strokeStyle = opt.tickColor;
-                for (i = 0; i <= opt.ticks; i++) {
-                    var pos = calculateXY(cnt, 0, 100 / opt.ticks * i);
-                    ctx.beginPath();
-                    ctx.moveTo(pos.x, pos.y);
-                    for (j = 1; j < cnt; j++) {
-                        pos = calculateXY(cnt, j, 100 / opt.ticks * i);
-                        ctx.lineTo(pos.x, pos.y);
-                    }
-                    ctx.closePath();
-                    ctx.stroke();
-                }
-                var startPoint = null;
-                var breakPoint = null;
-                for (j = 0; j < cnt; j++) {
-                    if (startPoint === null) {
-                        startPoint = calculateXY(cnt, j, 100);
-                        breakPoint = calculateXY(cnt, Math.floor(cnt / 4), 100);
-                    }
-                    drawspiderLine(ctx, j);
-                    drawspiderLeg(ctx, j, startPoint, breakPoint);
-                }
-            }
+	    function drawGridSpider() {
+		var i, j, grid;
+		grid = opt.grid;
+		ctx.linewidth = 1;
+		ctx.strokeStyle = grid.tickColor;
+		// draw the "circles" around
+		for (i = 0; i <= grid.ticks; i++) {
+			var pos = calculateXY(cnt, 0, 100 / grid.ticks * i);
 
-            function drawGrid(ctx, opt) {
-                switch (opt.mode) {
-                    case "radar":
-                        drawGridRadar(ctx, opt);
-                        break;
-                    case "spider":
-                        drawGridSpider(ctx, opt);
-                        break;
-                    default:
-                        drawGridRadar(ctx, opt);
-                        break;
-                }
-            }
+			var legValues = opt.series.spider.legValues;
+			var font = legValues.font;
+			if (legValues.show && i > 0) {
+				ctx.font = fontObjectToCanvasSpec(font);
+				ctx.fillText(i, pos.x + 2, pos.y + 2 + font.size) // 2 keeps away from line a bit
+			}
 
-            function drawScale(ctx, opt) {
-                if (opt.series.spider.scaleMode !== "leg") {
-                    for (var i = 0; i <= opt.ticks; i++) {
-                    }
-                }
-            }
+			ctx.beginPath();
+			ctx.moveTo(pos.x, pos.y);
+			for (j = 1; j < cnt; j++) {
+				pos = calculateXY(cnt, j, 100 / grid.ticks * i);
+				ctx.lineTo(pos.x, pos.y);
+			}
+			ctx.closePath();
+			ctx.stroke();
+		}
+		for (j = 0; j < cnt; j++) {
+			drawspiderLine(j, opt);
+			drawspiderLeg(j, opt);
+		}
+	    }
 
-            function drawspiderLine(ctx, j) {
+	    function drawGrid() {
+		switch (opt.grid.mode) {
+			case "radar":
+				drawGridRadar();
+				break;
+			default:
+				drawGridSpider(); // default is spider
+				break;
+		}
+	    }
+	    
+	    function drawspiderLine(j, passedOptions) {
                 var pos;
                 ctx.beginPath();
-                ctx.lineWidth = options.series.spider.lineWidth;
-                ctx.strokeStyle = options.series.spider.lineStyle;
+                ctx.lineWidth = passedOptions.series.spider.lineWidth;
+                ctx.strokeStyle = passedOptions.series.spider.lineStyle;
                 ctx.moveTo(centerLeft, centerTop);
                 pos = calculateXY(cnt, j, 100);
                 ctx.lineTo(pos.x, pos.y);
                 ctx.stroke();
             }
 
-            function drawspiderLeg(ctx, j, startPoint, breakPoint, gridColor) {
-                var pos, metrics, extraX, extraY;
-                pos = calculateXY(cnt, j, 100);
-                ctx.font = data[0].spider.legs.font;
-                ctx.fillStyle = data[0].spider.legs.fillStyle;
-                // based on patch created by Thomasz Janik
-                metrics = ctx.measureText(data[0].spider.legs.data[j].label);
-                if (pos.y > startPoint.y) {
-                    extraY = 15;
-                } else {
-                    extraY = -15;
-                }
-                if (between(pos.y, startPoint.y + 10, startPoint.y - 10)) {
-                    extraY = 0;
-                }
-                if (pos.x < breakPoint.x) {
-                    extraX = (metrics.width * -1) - 15;
-                } else {
-                    extraX = 0;
-                }
-                if (between(pos.x, startPoint.x + 10, startPoint.x - 10)) {
-                    extraX = 15;
-                }
-                ctx.fillText(data[0].spider.legs.data[j].label, pos.x + extraX, pos.y + extraY);
-            }
-        }
+	    function drawspiderLeg(j, passedOptions) {
+	    	var legOptions = passedOptions.series.spider.legs;
+	    	var labelSpace = legOptions.labelSpace;
+		var pos = calculateXY(cnt, j, labelSpace);
+		ctx.fillStyle = legOptions.fillStyle;
+		// font has to be an object so we can get size, but then we need to convert to string for canvas setting
+		var font = legOptions.font;
+		ctx.font = fontObjectToCanvasSpec(font);
+		ctx.textAlign = "center";
+		var maxWidth = legOptions.labelWidth == 0 ? null : legOptions.labelWidth
+				
+		wrapText(
+			ctx, 
+			legOptions.data[j].label,
+			pos.x,
+			pos.y + font.size / 2,
+			maxWidth,
+			font.size
+			)
+	    }
+	    function fontObjectToCanvasSpec(font) {
+		return (font.style === undefined ? "" : font.style + " ") + (font.variant === undefined ? "" : font.variant + " ") + (font.weight === undefined ? "" : font.weight + " ") + font.size + "px" + (font.lineHeight === undefined ? "" : "/" + font.lineHeight + "px") + " " + font.family;
+	    }
+	    function wrapText(context, text, x, y, maxWidth, lineHeight) {
+		// x and y need to be midpoint of our multiline box
+		// so we figure it out first, so we know how high our box is
+		// then adjust our position and do the writing
+		var toWrite = [];
+
+		// http://www.html5canvastutorials.com/tutorials/html5-canvas-wrap-text-tutorial/
+		var words = text.split(' ');
+		var line = '';
+		var n = 0
+		for (n = 0; n < words.length; n++) {
+			var testLine = line + words[n] + ' ';
+			var metrics = context.measureText(testLine);
+			var testWidth = metrics.width;
+			if (testWidth > maxWidth && n > 0) {
+				toWrite.push({ line: line, x: x, y: y })
+				line = words[n] + ' ';
+				y += lineHeight;
+			}
+			else {
+				line = testLine;
+			}
+		}
+		toWrite.push({ line: line, x: x, y: y })
+
+		var height = toWrite.length * lineHeight;
+		var yAdjust = height / 2;
+		for (var i = 0; i < toWrite.length; i++) {
+			context.fillText(toWrite[i].line.trim(), toWrite[i].x, toWrite[i].y - yAdjust);
+		}
+	    }
+	}
 
         function calculatePosition(serie, ranges, j, v) {
             var p;
@@ -442,7 +467,6 @@
         }
     }
 
-    var between = $.plot.JUMlib.library.between;
     $.plot.plugins.push({
         init: init,
         options: options,
