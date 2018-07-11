@@ -162,8 +162,8 @@
 		}
 
 		function setupspider(ctx) {
-			centerTop = (ctx.canvas.height / 2);
-			centerLeft = (ctx.canvas.width / 2);
+			centerTop = (ctx.canvas.clientHeight / 2);
+			centerLeft = (ctx.canvas.clientWidth / 2);
 			maxRadius = Math.min(centerTop, centerLeft) * data[0].spider.spiderSize;
 		}
 
